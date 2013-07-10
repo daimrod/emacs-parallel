@@ -51,10 +51,9 @@
                                    "--eval" (format "(setq parallel-service %S)" (process-contact serv :service))
                                    "-f" "parallel--init"
                                    "--eval" (format "(setq debug-on-error %s)" debug)
-                                   "--eval" (parallel--call-with-env exec-fun env)
-                                   "-f" "kill-emacs"
-                                 emacs-args)))))
-    (set-process-filter serv (parallel--make-filter proc))
+                                   emacs-args)))))
+    (process-put proc 'initialized nil)
+    (set-process-filter serv (parallel--make-filter proc exec-fun env))
     (process-put proc 'server serv)
     (when (functionp post-exec)
       (process-put proc 'post-exec post-exec))
@@ -83,26 +82,31 @@
                  results status)))))
 
 (defun parallel--call-with-env (fun env)
-  (format "(parallel-send (funcall (read %S) %s))"
+  (format "(funcall (read %S) %s)"
           (prin1-to-string fun)
           (mapconcat (lambda (obj)
                        (format "'%S" obj)) env " ")))
 
-(defun parallel--make-filter (master-proc)
-  (lambda (_proc output)
-    (loop with start = 0
-          with end = (length output)
-          with error = nil
-          for ret = (condition-case err
-                        (read-from-string output start end)
-                      (error (setq error err)))
-          do (process-put master-proc 'results
-                          (cons (or error
-                                    (first ret))
-                                (process-get master-proc 'results)))
-          do (setq start (unless error
-                           (rest ret)))
-          until (or error (= start end)))))
+(defun parallel--make-filter (master-proc exec-fun env)
+  (lambda (proc output)
+    (cond ((and (not (process-get master-proc 'initialized))
+                (eq (read output) 'code))
+           (process-send-string proc (parallel--call-with-env exec-fun env))
+           (process-put master-proc 'initialized t))
+          (t
+           (loop with start = 0
+                 with end = (length output)
+                 with error = nil
+                 for ret = (condition-case err
+                               (read-from-string output start end)
+                             (error (setq error err)))
+                 do (process-put master-proc 'results
+                                 (cons (or error
+                                           (first ret))
+                                       (process-get master-proc 'results)))
+                 do (setq start (unless error
+                                  (rest ret)))
+                 until (or error (= start end)))))))
 
 (defun parallel-ready (proc)
   (memq (process-get proc 'status) '(success exit signal)))

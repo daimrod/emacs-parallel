@@ -34,9 +34,15 @@
                                               :buffer nil
                                               :server nil
                                               :service parallel-service
-                                              :family 'local)))
+                                              :family 'local))
+  (set-process-filter parallel-client #'parallel--filter)
+  (parallel-send 'code))
 
-
+(defun parallel--filter (proc output)
+  (condition-case err
+      (parallel-send (eval (read output)))
+    (error (parallel-send err)))
+  (kill-emacs))
 
 (provide 'parallel-remote)
 
