@@ -51,7 +51,7 @@
                                    (if no-batch nil "-batch")
                                    "--eval" (format "(setq parallel-service %S)" (process-contact serv :service))
                                    "--eval" (format "(setq debug-on-error %s)" debug)
-                                   "-f" "parallel--init"
+                                   "-f" "parallel-remote--init"
                                    emacs-args)))))
     (process-put proc 'initialized nil)
     (set-process-filter serv (parallel--make-filter proc exec-fun env))

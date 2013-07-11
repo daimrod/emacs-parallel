@@ -30,13 +30,13 @@
   (process-send-string parallel-client
                        (format "%S " data)))
 
-(defun parallel--init ()
+(defun parallel-remote--init ()
   (setq parallel-client (make-network-process :name "emacs-parallel"
                                               :buffer nil
                                               :server nil
                                               :service parallel-service
                                               :family 'local))
-  (set-process-filter parallel-client #'parallel--filter)
+  (set-process-filter parallel-client #'parallel-remote--filter)
   (parallel-send 'code)
   (when noninteractive                  ; Batch Mode
     ;; The evaluation is done in the `parallel--filter' but in Batch
@@ -45,7 +45,7 @@
     (while (null parallel--executed)
       (sleep-for 10))))                 ; arbitrary chosen
 
-(defun parallel--filter (proc output)
+(defun parallel-remote--filter (proc output)
   (condition-case err
       (parallel-send (eval (read output)))
     (error (parallel-send err)))
