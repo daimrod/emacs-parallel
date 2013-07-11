@@ -113,8 +113,8 @@
                                   (rest ret)))
                  until (or error (= start end)))))))
 
-(defun parallel-ready (proc)
-  (memq (process-get proc 'status) '(success exit signal)))
+(defun parallel-ready-p (proc)
+  (memq (parallel-status proc) '(success exit signal)))
 
 (defun parallel-get-result (proc)
   (first (parallel-get-results proc)))
@@ -128,7 +128,7 @@
   (eq (process-get proc 'status) 'success))
 
 (defun parallel-wait (proc)
-  (while (not (parallel-ready proc))
+  (while (not (parallel-ready-p proc))
     (sleep-for parallel-sleep))
   t)                                    ; for REPL
 
