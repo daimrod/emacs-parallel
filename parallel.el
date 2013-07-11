@@ -91,7 +91,8 @@
 (defun parallel--make-filter (master-proc exec-fun env)
   (lambda (proc output)
     (cond ((and (not (process-get master-proc 'initialized))
-                (eq (read output) 'code))
+                (eq (read output) 'code)
+                (eq (process-status proc) 'open))
            (process-send-string proc (parallel--call-with-env exec-fun env))
            (process-put master-proc 'initialized t))
           (t
