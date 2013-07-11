@@ -96,7 +96,10 @@
            (process-send-string proc (parallel--call-with-env exec-fun env))
            (process-put master-proc 'initialized t))
           (t
-           (loop with start = 0
+           (loop with output = (replace-regexp-in-string
+                                "\\`[ \t\n]*" ""
+                                (replace-regexp-in-string "[ \t\n]*\\'" "" output)) ; trim string
+                 with start = 0
                  with end = (length output)
                  with error = nil
                  for ret = (condition-case err

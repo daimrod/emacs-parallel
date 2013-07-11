@@ -28,7 +28,7 @@
 
 (defun parallel-send (data)
   (process-send-string parallel-client
-                       (format "%S" data)))
+                       (format "%S " data)))
 
 (defun parallel--init ()
   (setq parallel-client (make-network-process :name "emacs-parallel"
