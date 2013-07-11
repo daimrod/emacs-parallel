@@ -125,7 +125,10 @@
 
 (defun parallel-success-p (proc)
   (parallel-wait proc)
-  (eq (process-get proc 'status) 'success))
+  (eq (parallel-status proc) 'success))
+
+(defun parallel-status (proc)
+  (process-get proc 'status))
 
 (defun parallel-wait (proc)
   (while (not (parallel-ready-p proc))

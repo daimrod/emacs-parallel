@@ -38,7 +38,7 @@
   (let ((proc (parallel-start (lambda () (sleep-for 42))
                               :timeout 0)))
     (should (not (parallel-success-p proc)))
-    (should (equal 'signal (process-status proc)))))
+    (should (equal 'signal (parallel-status proc)))))
 
 (ert-deftest test-parallel-error ()
   (let* ((fun (lambda () (+ 1 'foo))))
