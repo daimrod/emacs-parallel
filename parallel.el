@@ -41,7 +41,8 @@
                                      :buffer nil
                                      :server t
                                      :service (make-temp-name "/tmp/parallel-")
-                                     :family 'local))
+                                     :family 'local
+                                     :filter-multibyte t))
          (proc (apply #'start-process "emacs-parallel" nil (file-truename
                                                    (expand-file-name invocation-name
                                                                      invocation-directory))
@@ -49,8 +50,8 @@
                             (list* "-Q" "-l" (find-library-name "parallel-remote")
                                    (if no-batch nil "-batch")
                                    "--eval" (format "(setq parallel-service %S)" (process-contact serv :service))
-                                   "-f" "parallel--init"
                                    "--eval" (format "(setq debug-on-error %s)" debug)
+                                   "-f" "parallel--init"
                                    emacs-args)))))
     (process-put proc 'initialized nil)
     (set-process-filter serv (parallel--make-filter proc exec-fun env))
