@@ -24,6 +24,7 @@
 
 (defvar parallel-service nil)
 (defvar parallel-client nil)
+(defvar parallel--executed nil)
 
 (defun parallel-send (data)
   (process-send-string parallel-client
@@ -36,12 +37,19 @@
                                               :service parallel-service
                                               :family 'local))
   (set-process-filter parallel-client #'parallel--filter)
-  (parallel-send 'code))
+  (parallel-send 'code)
+  (when noninteractive                  ; Batch Mode
+    ;; The evaluation is done in the `parallel--filter' but in Batch
+    ;; Mode, Emacs doesn't wait for the input, it stops as soon as
+    ;; `parallel--init' has been executed.
+    (while (null parallel--executed)
+      (sleep-for 10))))                 ; arbitrary chosen
 
 (defun parallel--filter (proc output)
   (condition-case err
       (parallel-send (eval (read output)))
     (error (parallel-send err)))
+  (setq parallel--executed t)
   (kill-emacs))
 
 (provide 'parallel-remote)
