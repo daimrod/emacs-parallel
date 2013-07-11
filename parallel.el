@@ -36,7 +36,7 @@
 ;; Declare external function
 (declare-function parallel-send "parallel-remote")
 
-(defun* parallel-start (exec-fun &key post-exec timeout env emacs-args no-batch debug)
+(defun* parallel-start (exec-fun &key post-exec timeout env emacs-args no-batch debug on-event)
   (let* ((serv (make-network-process :name "emacs-parallel"
                                      :buffer nil
                                      :server t
@@ -58,6 +58,8 @@
     (process-put proc 'server serv)
     (when (functionp post-exec)
       (process-put proc 'post-exec post-exec))
+    (when (functionp on-event)
+      (process-put proc 'on-event on-event))
     (process-put proc 'results nil)
     (process-put proc 'status 'run)
     (set-process-sentinel proc #'parallel--sentinel)
@@ -102,6 +104,7 @@
                  with start = 0
                  with end = (length output)
                  with error = nil
+                 with on-event = (process-get master-proc 'on-event)
                  for ret = (condition-case err
                                (read-from-string output start end)
                              (error (setq error err)))
@@ -111,6 +114,9 @@
                                        (process-get master-proc 'results)))
                  do (setq start (unless error
                                   (rest ret)))
+                 if on-event
+                 do (funcall on-event (or error (first ret)))
+                 
                  until (or error (= start end)))))))
 
 (defun parallel-ready-p (proc)

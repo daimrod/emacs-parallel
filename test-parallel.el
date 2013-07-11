@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 ;;; test-parallel.el ---
 
 ;; Copyright (C) 2013 Grégoire Jadi
@@ -54,6 +55,20 @@
                    (condition-case err
                        (funcall fun)
                      (error err))))))
+
+(ert-deftest test-parallel-on-event ()
+  (let ((ret 0))
+    (should (equal
+             (apply #'+
+                    (parallel-get-results
+                     (parallel-start (lambda ()
+                                       (parallel-send 12)
+                                       (parallel-send 42)
+                                       0)
+                                     :on-event
+                                     (lambda (data)
+                                       (incf ret data)))))
+             ret))))
 
 (provide 'test-parallel)
 
