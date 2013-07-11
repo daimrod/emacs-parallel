@@ -65,7 +65,7 @@
       (run-at-time timeout nil (lambda ()
                                  (when (memq (process-status proc)
                                              '(run stop))
-                                   (kill-process proc)))))
+                                   (parallel-stop proc)))))
     proc))
 
 (defun parallel--sentinel (proc _event)
@@ -135,6 +135,8 @@
     (sleep-for parallel-sleep))
   t)                                    ; for REPL
 
+(defun parallel-stop (proc)
+  (delete-process proc))
 
 (provide 'parallel)
 
