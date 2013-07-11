@@ -34,6 +34,14 @@
                                                          42)))
                  (list 42 12))))
 
+(ert-deftest test-parallel-status ()
+  (let ((proc (parallel-start (lambda ()
+                                (sleep-for 42)))))
+    (should (equal (parallel-status proc) 'run))
+    (parallel-stop proc)
+    (should (parallel-ready-p proc))
+    (should (equal (parallel-status proc) 'signal))))
+
 (ert-deftest test-parallel-timeout ()
   (let ((proc (parallel-start (lambda () (sleep-for 42))
                               :timeout 0)))
