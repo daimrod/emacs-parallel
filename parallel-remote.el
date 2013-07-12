@@ -46,9 +46,13 @@
       (sleep-for 10))))                 ; arbitrary chosen
 
 (defun parallel-remote--filter (proc output)
-  (condition-case err
-      (parallel-send (eval (read output)))
-    (error (parallel-send err)))
+  (parallel-send
+   (if (or noninteractive
+           (not debug-on-error))
+       (condition-case err
+           (eval (read output))
+         (error err))
+     (eval (read output))))
   (setq parallel--executed t)
   (kill-emacs))
 
