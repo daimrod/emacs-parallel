@@ -8,6 +8,7 @@
   You can execute a simple function a retrive the result like this:
   #+BEGIN_SRC emacs-lisp
     (parallel-get-result (parallel-start (lambda () (* 42 42))))
+    ⇒ 1764
   #+END_SRC
 
   Though you won't benefit from the parallelism because
@@ -20,6 +21,7 @@
     (parallel-start (lambda () (sleep-for 4.2) "Hello World")
                     :post-exec (lambda (results _status)
                                  (message (first results))))
+    ⊣ Hello World
   #+END_SRC
 
   Here, why ~(first results)~ and not ~result~? Because you can send
@@ -33,6 +35,7 @@
                     :post-exec (lambda (results _status)
                                  (message "%s"
                                           (mapconcat #'identity (reverse results) " "))))
+    ⊣ Hello World
   #+END_SRC
   As you may have noticed the results are pushed in a list, so the
   first element is the result returned by the function called, the
@@ -47,6 +50,7 @@
                       pi)
                     :on-event (lambda (data)
                                 (message "Received %S" data)))
+    ⊣ Received 42
   #+END_SRC
 
   Because the function is executed in another Emacs instance (in Batch
@@ -57,6 +61,7 @@
           (b 12))
       (parallel-get-result (parallel-start (lambda (a b) (+ a b))
                                            :env (list a b))))
+    ⇒ 54
   #+END_SRC
 
 * TODO How does it work?

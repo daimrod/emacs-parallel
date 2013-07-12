@@ -1,3 +1,14 @@
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. Emacs Parallel</a></li>
+<li><a href="#sec-2">2. HowTo</a></li>
+<li><a href="#sec-3">3. How does it work?</a></li>
+<li><a href="#sec-4">4. Known limitations</a></li>
+</ul>
+</div>
+</div>
 # Emacs Parallel
 
 Emacs Parallel is yet another library to simulate parallel
@@ -8,6 +19,7 @@ computations in Emacs (because it lacks threads support in Elisp).
 You can execute a simple function a retrive the result like this:
 
     (parallel-get-result (parallel-start (lambda () (* 42 42))))
+    ⇒ 1764
 
 Though you won't benefit from the parallelism because
 `parallel-get-result` is blocking, that is it waits for the function
@@ -19,6 +31,7 @@ finished:
     (parallel-start (lambda () (sleep-for 4.2) "Hello World")
                     :post-exec (lambda (results _status)
                                  (message (first results))))
+    ⊣ Hello World
 
 Here, why `(first results)` and not `result`? Because you can send
 data from the remote instance while it's running with
@@ -31,6 +44,7 @@ data from the remote instance while it's running with
                     :post-exec (lambda (results _status)
                                  (message "%s"
                                           (mapconcat #'identity (reverse results) " "))))
+    ⊣ Hello World
 
 As you may have noticed the results are pushed in a list, so the
 first element is the result returned by the function called, the
@@ -45,6 +59,7 @@ the remote instance:
                       pi)
                     :on-event (lambda (data)
                                 (message "Received %S" data)))
+    ⊣ Received 42
 
 Because the function is executed in another Emacs instance (in Batch
 Mode by default), the environment isn't the same. However you can
@@ -54,6 +69,7 @@ send some data with the `env` parameter:
           (b 12))
       (parallel-get-result (parallel-start (lambda (a b) (+ a b))
                                            :env (list a b))))
+    ⇒ 54
 
 # TODO How does it work?
 
