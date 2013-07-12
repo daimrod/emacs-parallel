@@ -4,8 +4,9 @@
 <ul>
 <li><a href="#sec-1">1. Emacs Parallel</a></li>
 <li><a href="#sec-2">2. HowTo</a></li>
-<li><a href="#sec-3">3. How does it work?</a></li>
-<li><a href="#sec-4">4. Known limitations</a></li>
+<li><a href="#sec-3">3. Tips &amp; Tricks</a></li>
+<li><a href="#sec-4">4. How does it work?</a></li>
+<li><a href="#sec-5">5. Known limitations</a></li>
 </ul>
 </div>
 </div>
@@ -70,6 +71,23 @@ send some data with the `env` parameter:
       (parallel-get-result (parallel-start (lambda (a b) (+ a b))
                                            :env (list a b))))
     ⇒ 54
+
+# Tips & Tricks
+
+If your windows manager is smart enough (like StumpwWM) you can use
+it to move graphical windows (Emacs frames) in another desktop.
+
+For example, I use this to move Emacs frames (with the title
+"emacs-debug") to the group (aka desktop) 9:
+
+    (define-frame-preference "9"
+      (0 nil t :title "emacs-debug"))  
+
+And this to specify the title of the frame:
+
+    (parallel-start (lambda () 42)
+                    :no-batch t
+                    :emacs-args '("-T" "emacs-debug"))
 
 # TODO How does it work?
 

@@ -63,7 +63,25 @@
                                            :env (list a b))))
     ⇒ 54
   #+END_SRC
+* Tips & Tricks
 
+  If your windows manager is smart enough (like StumpwWM) you can use
+  it to move graphical windows (Emacs frames) in another desktop.
+
+  For example, I use this to move Emacs frames (with the title
+  "emacs-debug") to the group (aka desktop) 9:
+  #+BEGIN_SRC lisp
+    (define-frame-preference "9"
+      (0 nil t :title "emacs-debug"))  
+  #+END_SRC
+
+  And this to specify the title of the frame:
+  #+BEGIN_SRC emacs-lisp
+    (parallel-start (lambda () 42)
+                    :no-batch t
+                    :emacs-args '("-T" "emacs-debug"))
+  #+END_SRC
+  
 * TODO How does it work?
 
 * Known limitations
