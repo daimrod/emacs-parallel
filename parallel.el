@@ -74,29 +74,46 @@
     proc))
 
 (defun parallel--sentinel (proc _event)
+  "Sentinel to watch over the remote process.
+
+This function do the necessary cleanup when the remote process is
+finished."
   (when (memq (process-status proc) '(exit signal))
     (let ((results (process-get proc 'results))
           (status (process-status proc))
           (server (process-get proc 'server)))
+      ;; 0 means that the remote process has terminated normally (no
+      ;; SIGNUM 0).
       (if (zerop (process-exit-status proc))
           (setq status 'success)
+        ;; on failure, push the exit-code or signal number on the
+        ;; results stack.
         (push (process-exit-status proc) results))
       (process-put proc 'results results)
       (process-put proc 'status status)
+
+      ;; cleanup the Unix socket if it exists.
       (if (file-exists-p (process-contact server :service))
           (delete-file (process-contact server :service)))
       (delete-process server)
+
       (when (functionp (process-get proc 'post-exec))
         (funcall (process-get proc 'post-exec)
                  results status)))))
 
 (defun parallel--call-with-env (fun env)
+  "Return a string which can be READ/EVAL by the remote process
+to `funcall' FUN with ENV as arguments."
   (format "(funcall (read %S) %s)"
           (prin1-to-string fun)
           (mapconcat (lambda (obj)
+                       ;; We need to quote it because the remote
+                       ;; process will READ/EVAL it.
                        (format "'%S" obj)) env " ")))
 
 (defun parallel--filter (connection output)
+  "Server filter used to retrieve the results send by the remote
+process and send the code to be executed by it."
   (let ((proc (process-get connection 'proc)))
     (cond ((and (not (process-get proc 'initialized))
                 (eq (read output) 'code)
@@ -128,28 +145,37 @@
                  until (or error (= start end)))))))
 
 (defun parallel-ready-p (proc)
+  "Determine whether PROC is finished and if the results are
+available."
   (memq (parallel-status proc) '(success exit signal)))
 
 (defun parallel-get-result (proc)
+  "Return the last result send by the remote call, that is the
+result returned by exec-fun."
   (first (parallel-get-results proc)))
 
 (defun parallel-get-results (proc)
+  "Return all results send during the call of exec-fun."
   (parallel-wait proc)
   (process-get proc 'results))
 
 (defun parallel-success-p (proc)
+  "Determine whether PROC has ended successfully."
   (parallel-wait proc)
   (eq (parallel-status proc) 'success))
 
 (defun parallel-status (proc)
+  "Return PROC status."
   (process-get proc 'status))
 
 (defun parallel-wait (proc)
+  "Wait for PROC."
   (while (not (parallel-ready-p proc))
     (sleep-for parallel-sleep))
   t)                                    ; for REPL
 
 (defun parallel-stop (proc)
+  "Stop PROC."
   (delete-process proc))
 
 (provide 'parallel)
