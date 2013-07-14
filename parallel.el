@@ -42,10 +42,13 @@
                                      :server t
                                      :service (make-temp-name "/tmp/parallel-")
                                      :family 'local
-                                     :filter-multibyte t))
+                                     :filter #'parallel--filter
+                                     :filter-multibyte t
+                                     :plist (list 'exec-fun exec-fun
+                                                  'env env)))
          (proc (apply #'start-process "emacs-parallel" nil (file-truename
-                                                   (expand-file-name invocation-name
-                                                                     invocation-directory))
+                                                            (expand-file-name invocation-name
+                                                                              invocation-directory))
                       (remq nil
                             (list* "-Q" "-l" (find-library-name "parallel-remote")
                                    (if no-batch nil "-batch")
@@ -54,8 +57,8 @@
                                    "-f" "parallel-remote--init"
                                    emacs-args)))))
     (process-put proc 'initialized nil)
-    (set-process-filter serv (parallel--make-filter proc exec-fun env))
     (process-put proc 'server serv)
+    (process-put serv 'proc proc)
     (when (functionp post-exec)
       (process-put proc 'post-exec post-exec))
     (when (functionp on-event)
