@@ -73,13 +73,16 @@
 (defun parallel--sentinel (proc _event)
   (when (memq (process-status proc) '(exit signal))
     (let ((results (process-get proc 'results))
-          (status (process-status proc)))
+          (status (process-status proc))
+          (server (process-get proc 'server)))
       (if (zerop (process-exit-status proc))
           (setq status 'success)
         (push (process-exit-status proc) results))
       (process-put proc 'results results)
       (process-put proc 'status status)
-      (delete-process (process-get proc 'server))
+      (if (file-exists-p (process-contact server :service))
+          (delete-file (process-contact server :service)))
+      (delete-process server)
       (when (functionp (process-get proc 'post-exec))
         (funcall (process-get proc 'post-exec)
                  results status)))))
@@ -90,13 +93,15 @@
           (mapconcat (lambda (obj)
                        (format "'%S" obj)) env " ")))
 
-(defun parallel--make-filter (master-proc exec-fun env)
-  (lambda (proc output)
-    (cond ((and (not (process-get master-proc 'initialized))
+(defun parallel--filter (connection output)
+  (let ((proc (process-get connection 'proc)))
+    (cond ((and (not (process-get proc 'initialized))
                 (eq (read output) 'code)
-                (eq (process-status proc) 'open))
-           (process-send-string proc (parallel--call-with-env exec-fun env))
-           (process-put master-proc 'initialized t))
+                (eq (process-status connection) 'open))
+           (process-send-string connection
+                                (parallel--call-with-env (process-get connection 'exec-fun)
+                                                         (process-get connection 'env)))
+           (process-put proc 'initialized t))
           (t
            (loop with output = (replace-regexp-in-string
                                 "\\`[ \t\n]*" ""
@@ -104,14 +109,14 @@
                  with start = 0
                  with end = (length output)
                  with error = nil
-                 with on-event = (process-get master-proc 'on-event)
+                 with on-event = (process-get proc 'on-event)
                  for ret = (condition-case err
                                (read-from-string output start end)
                              (error (setq error err)))
-                 do (process-put master-proc 'results
+                 do (process-put proc 'results
                                  (cons (or error
                                            (first ret))
-                                       (process-get master-proc 'results)))
+                                       (process-get proc 'results)))
                  do (setq start (unless error
                                   (rest ret)))
                  if on-event
