@@ -36,7 +36,11 @@
 ;; Declare external function
 (declare-function parallel-send "parallel-remote")
 
-(defun* parallel-start (exec-fun &key post-exec timeout env emacs-args no-batch debug on-event)
+(defun* parallel-start (exec-fun &key post-exec timeout env emacs-path emacs-args no-batch debug on-event)
+  (setq emacs-path (file-truename
+                    (or emacs-path
+                        (expand-file-name invocation-name
+                                          invocation-directory))))
   (let* ((serv (make-network-process :name "emacs-parallel"
                                      :buffer nil
                                      :server t
@@ -46,9 +50,7 @@
                                      :filter-multibyte t
                                      :plist (list 'exec-fun exec-fun
                                                   'env env)))
-         (proc (apply #'start-process "emacs-parallel" nil (file-truename
-                                                            (expand-file-name invocation-name
-                                                                              invocation-directory))
+         (proc (apply #'start-process "emacs-parallel" nil emacs-path
                       (remq nil
                             (list* "-Q" "-l" (find-library-name "parallel-remote")
                                    (if no-batch nil "-batch")
