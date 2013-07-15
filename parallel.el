@@ -38,7 +38,7 @@
 
 (defun* parallel-start (exec-fun &key post-exec env timeout
                                  emacs-path library-path emacs-args
-                                 no-batch debug on-event)
+                                 graphical debug on-event)
   (setq emacs-path (file-truename
                     (or emacs-path
                         (expand-file-name invocation-name
@@ -60,7 +60,7 @@
                 proc (apply #'start-process "emacs-parallel" nil emacs-path
                             (remq nil
                                   (list* "-Q" "-l" library-path
-                                         (if no-batch nil "-batch")
+                                         (if graphical nil "-batch")
                                          "--eval" (format "(setq parallel-service %S)" (process-contact serv :service))
                                          "--eval" (format "(setq debug-on-error %s)" debug)
                                          "-f" "parallel-remote--init"
