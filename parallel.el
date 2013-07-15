@@ -81,9 +81,10 @@
 This function do the necessary cleanup when the remote process is
 finished."
   (when (memq (process-status proc) '(exit signal))
-    (let ((results (process-get proc 'results))
-          (status (process-status proc))
-          (server (process-get proc 'server)))
+    (let* ((results (process-get proc 'results))
+           (status (process-status proc))
+           (server (process-get proc 'server))
+           (server-service (process-contact server :service)))
       ;; 0 means that the remote process has terminated normally (no
       ;; SIGNUM 0).
       (if (zerop (process-exit-status proc))
@@ -95,8 +96,9 @@ finished."
       (process-put proc 'status status)
 
       ;; cleanup the Unix socket if it exists.
-      (if (file-exists-p (process-contact server :service))
-          (delete-file (process-contact server :service)))
+      (if (and (stringp server-service)
+               (file-exists-p server-service))
+          (delete-file server-service))
       (delete-process server)
 
       (when (functionp (process-get proc 'post-exec))
