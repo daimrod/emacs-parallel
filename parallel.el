@@ -41,20 +41,32 @@
 
 (defun* parallel-start (exec-fun &key post-exec env timeout
                                  emacs-path library-path emacs-args
-                                 graphical debug on-event)
+                                 graphical debug on-event
+                                 config)
   ;; Be sure we have a running `parallel--server'
   (when (or (null parallel--server)
             (not (eq (process-status parallel--server)
                      'listen)))
     (parallel--init-server))
-  
-  (setq emacs-path (file-truename
+
+  ;; Initialize parameters
+  (setq post-exec (or post-exec (plist-get config :post-exec))
+        env (or env (plist-get config :env))
+        timeout (or timeout (plist-get config :timeout))
+        emacs-path (file-truename
                     (or emacs-path
+                        (plist-get config :emacs-path)
                         (expand-file-name invocation-name
                                           invocation-directory)))
         library-path (or library-path
-                         (find-library-name "parallel-remote")))
-  (let ((task (intern (make-temp-name "emacs-parallel-task-")))
+                         (plist-get config :library-path)
+                         (find-library-name "parallel-remote"))
+        emacs-args (or emacs-args (plist-get config :emacs-args))
+        graphical (or graphical (plist-get config :graphical))
+        debug (or debug (plist-get config :debug))
+        on-event (or on-event (plist-get config :debug)))
+  
+  (let ((task (parallel--new-task))
         proc)
     (push task parallel--tasks)
     (put task 'initialized nil)
@@ -83,6 +95,13 @@
                                              '(run stop))
                                    (parallel-stop task)))))
     task))
+
+(defun parallel--new-task ()
+  "Generate a new task by enforcing a unique name."
+  (let ((symbol-name (make-temp-name "emacs-parallel-task-")))
+    (while (intern-soft symbol-name)
+      (setq symbol-name (make-temp-name "emacs-parallel-task-")))
+    (intern symbol-name)))
 
 (defun parallel--init-server ()
   (setq parallel--server
