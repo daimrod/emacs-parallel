@@ -1,4 +1,4 @@
-;; -*- mode: emacs-lisp; lexical-binding: t; -*-
+;; -*- lexical-binding: t; -*-
 ;;; parallel.el ---
 
 ;; Copyright (C) 2013 Grégoire Jadi
