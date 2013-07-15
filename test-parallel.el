@@ -26,16 +26,16 @@
 (require 'ert)
 (require 'parallel)
 
-(ert-deftest test-parallel-basic ()
+(ert-deftest parallel-basic ()
   (should (= 42 (parallel-get-result (parallel-start (lambda () 42))))))
 
-(ert-deftest test-parallel-send ()
+(ert-deftest parallel-send ()
   (should (equal (parallel-get-results (parallel-start (lambda ()
                                                          (parallel-send 12)
                                                          42)))
                  (list 42 12))))
 
-(ert-deftest test-parallel-status ()
+(ert-deftest parallel-status ()
   (let ((proc (parallel-start (lambda ()
                                 (sleep-for 42)))))
     (should (equal (parallel-status proc) 'run))
@@ -43,20 +43,20 @@
     (should (parallel-ready-p proc))
     (should (equal (parallel-status proc) 'signal))))
 
-(ert-deftest test-parallel-timeout ()
+(ert-deftest parallel-timeout ()
   (let ((proc (parallel-start (lambda () (sleep-for 42))
                               :timeout 0)))
     (should (not (parallel-success-p proc)))
     (should (equal 'signal (parallel-status proc)))))
 
-(ert-deftest test-parallel-error ()
+(ert-deftest parallel-error ()
   (let* ((fun (lambda () (+ 1 'foo))))
     (should (equal (parallel-get-result (parallel-start fun))
                    (condition-case err
                        (funcall fun)
                      (error err))))))
 
-(ert-deftest test-parallel-on-event ()
+(ert-deftest parallel-on-event ()
   (let ((ret 0))
     (should (equal
              (apply #'+
