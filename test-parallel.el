@@ -105,6 +105,9 @@
                          (parallel-get-result t4)
                          (parallel-get-result t5))))))
 
+(ert-deftest parallel-zlist ()
+  ;; HACKY ERT run tests in alphabetical order, hence the name.
+  (should (eq nil parallel--tasks)))
 
 (provide 'test-parallel)
 

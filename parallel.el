@@ -121,7 +121,8 @@ finished."
 
       (when (functionp (get task 'post-exec))
         (funcall (get task 'post-exec)
-                 results status)))))
+                 results status))
+      (setq parallel--tasks (delq task parallel--tasks)))))
 
 (defun parallel--call-with-env (fun env)
   "Return a string which can be READ/EVAL by the remote process
