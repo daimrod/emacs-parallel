@@ -41,39 +41,51 @@
                     (or emacs-path
                         (expand-file-name invocation-name
                                           invocation-directory))))
-  (let* ((serv (make-network-process :name "emacs-parallel"
-                                     :buffer nil
-                                     :server t
-                                     :service (make-temp-name "/tmp/parallel-")
-                                     :family 'local
-                                     :filter #'parallel--filter
-                                     :filter-multibyte t
-                                     :plist (list 'exec-fun exec-fun
-                                                  'env env)))
-         (proc (apply #'start-process "emacs-parallel" nil emacs-path
-                      (remq nil
-                            (list* "-Q" "-l" (find-library-name "parallel-remote")
-                                   (if no-batch nil "-batch")
-                                   "--eval" (format "(setq parallel-service %S)" (process-contact serv :service))
-                                   "--eval" (format "(setq debug-on-error %s)" debug)
-                                   "-f" "parallel-remote--init"
-                                   emacs-args)))))
-    (process-put proc 'initialized nil)
-    (process-put proc 'server serv)
-    (process-put serv 'proc proc)
-    (when (functionp post-exec)
-      (process-put proc 'post-exec post-exec))
-    (when (functionp on-event)
-      (process-put proc 'on-event on-event))
-    (process-put proc 'results nil)
-    (process-put proc 'status 'run)
-    (set-process-sentinel proc #'parallel--sentinel)
-    (when timeout
-      (run-at-time timeout nil (lambda ()
-                                 (when (memq (process-status proc)
-                                             '(run stop))
-                                   (parallel-stop proc)))))
-    proc))
+  (let (serv proc)
+    (condition-case err
+        (progn 
+          (setq serv (make-network-process :name "emacs-parallel"
+                                           :buffer nil
+                                           :server t
+                                           :service (make-temp-name "/tmp/parallel-")
+                                           :family 'local
+                                           :filter #'parallel--filter
+                                           :filter-multibyte t
+                                           :plist (list 'exec-fun exec-fun
+                                                        'env env))
+                proc (apply #'start-process "emacs-parallel" nil emacs-path
+                            (remq nil
+                                  (list* "-Q" "-l" (find-library-name "parallel-remote")
+                                         (if no-batch nil "-batch")
+                                         "--eval" (format "(setq parallel-service %S)" (process-contact serv :service))
+                                         "--eval" (format "(setq debug-on-error %s)" debug)
+                                         "-f" "parallel-remote--init"
+                                         emacs-args))))
+          (process-put proc 'initialized nil)
+          (process-put proc 'server serv)
+          (process-put serv 'proc proc)
+          (when (functionp post-exec)
+            (process-put proc 'post-exec post-exec))
+          (when (functionp on-event)
+            (process-put proc 'on-event on-event))
+          (process-put proc 'results nil)
+          (process-put proc 'status 'run)
+          (set-process-sentinel proc #'parallel--sentinel)
+          (when timeout
+            (run-at-time timeout nil (lambda ()
+                                       (when (memq (process-status proc)
+                                                   '(run stop))
+                                         (parallel-stop proc)))))
+          proc)
+      ;; Intercept errors ...
+      (error
+       ;; ... cleanup processes ...
+       (if (processp serv)
+           (delete-process serv))
+       (if (processp proc)
+           (delete-process proc))
+       ;; ... and re-throw.
+       (error err)))))
 
 (defun parallel--sentinel (proc _event)
   "Sentinel to watch over the remote process.
