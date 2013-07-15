@@ -1,4 +1,3 @@
-;; -*- lexical-binding: t; -*-
 ;;; test-parallel.el ---
 
 ;; Copyright (C) 2013 Grégoire Jadi
