@@ -78,7 +78,7 @@
       (put task 'on-event on-event))
     (put task 'results nil)
     (put task 'status 'run)
-    (setq proc (apply #'start-process "emacs-parallel" nil emacs-path
+    (setq proc (apply #'start-process "parallel" nil emacs-path
                       (remq nil
                             (list* "-Q" "-l" library-path
                                    (if graphical nil "-batch")
@@ -98,15 +98,15 @@
 
 (defun parallel--new-task ()
   "Generate a new task by enforcing a unique name."
-  (let ((symbol-name (make-temp-name "emacs-parallel-task-")))
+  (let ((symbol-name (make-temp-name "parallel-task-")))
     (while (intern-soft symbol-name)
-      (setq symbol-name (make-temp-name "emacs-parallel-task-")))
+      (setq symbol-name (make-temp-name "parallel-task-")))
     (intern symbol-name)))
 
 (defun parallel--init-server ()
   "Initialize `parallel--server'."
   (setq parallel--server
-        (make-network-process :name "emacs-parallel-server"
+        (make-network-process :name "parallel-server"
                               :buffer nil
                               :server t
                               :host "localhost"
