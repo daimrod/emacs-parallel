@@ -69,6 +69,30 @@
                                        (incf ret data)))))
              ret))))
 
+(ert-deftest parallel-other-version ()
+  "I use my own, compiled, emacs."
+  (should (equal (emacs-version)
+                 (parallel-get-result
+                  (parallel-start (lambda ()
+                                    (emacs-version))))))
+  (should-not (equal (emacs-version)
+                     (parallel-get-result
+                      (parallel-start (lambda ()
+                                        (emacs-version))
+                                      :emacs-path "/usr/bin/emacs23")))))
+
+(ert-deftest parallel-other-library ()
+  (let ((library (make-temp-file "parallel-")))
+    (with-temp-file library
+      (insert-file-contents (find-library-name "parallel-remote"))
+      (insert "(defun parallel--test () 42)"))
+    (should (equal 42
+                   (parallel-get-result
+                    (parallel-start (lambda ()
+                                      (parallel--test))
+                                    :library-path library))))))
+
+
 (provide 'test-parallel)
 
 ;;; test-parallel.el ends here
