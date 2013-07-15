@@ -104,6 +104,7 @@
     (intern symbol-name)))
 
 (defun parallel--init-server ()
+  "Initialize `parallel--server'."
   (setq parallel--server
         (make-network-process :name "emacs-parallel-server"
                               :buffer nil
@@ -115,6 +116,7 @@
                               :filter-multibyte t)))
 
 (defun parallel--get-task-process (proc)
+  "Return the task running the given PROC."
   (find-if (lambda (task)
              (eq (get task 'proc) proc))
            parallel--tasks))
