@@ -92,6 +92,19 @@
                                       (parallel--test))
                                     :library-path library))))))
 
+(ert-deftest parallel-multiple-tasks ()
+  (let ((t1 (parallel-start (lambda () (sleep-for (random 4)) 1)))
+        (t2 (parallel-start (lambda () (sleep-for (random 4)) 2)))
+        (t3 (parallel-start (lambda () (sleep-for (random 4)) 3)))
+        (t4 (parallel-start (lambda () (sleep-for (random 4)) 4)))
+        (t5 (parallel-start (lambda () (sleep-for (random 4)) 5))))
+    (should (equal (list 1 2 3 4 5)
+                   (list (parallel-get-result t1)
+                         (parallel-get-result t2)
+                         (parallel-get-result t3)
+                         (parallel-get-result t4)
+                         (parallel-get-result t5))))))
+
 
 (provide 'test-parallel)
 

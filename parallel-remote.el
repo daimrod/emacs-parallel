@@ -23,19 +23,21 @@
 ;;; Code:
 
 (defvar parallel-service nil)
+(defvar paralllel-task-id nil)
 (defvar parallel-client nil)
 (defvar parallel--executed nil)
 
 (defun parallel-send (data)
   (process-send-string parallel-client
-                       (format "%S " data)))
+                       (format "%S " (cons parallel-task-id data))))
 
 (defun parallel-remote--init ()
   (setq parallel-client (make-network-process :name "emacs-parallel"
                                               :buffer nil
                                               :server nil
                                               :service parallel-service
-                                              :family 'local))
+                                              :host "localhost"
+                                              :family 'ipv4))
   (set-process-filter parallel-client #'parallel-remote--filter)
   (parallel-send 'code)
   (when noninteractive                  ; Batch Mode
