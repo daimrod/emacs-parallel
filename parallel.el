@@ -35,19 +35,46 @@
 
 (defvar parallel--server nil)
 (defvar parallel--tasks nil)
+(defvar parallel--tunnels nil)
 
 ;; Declare external function
 (declare-function parallel-send "parallel-remote")
 
+(defun parallel-make-tunnel (username hostname)
+  (parallel--init-server)
+  (let ((tunnel (find-if (lambda (tun)
+                           (and (string= username
+                                         (process-get tun 'username))
+                                (string= hostname
+                                         (process-get tun 'hostname))))
+                         parallel--tunnels)))
+    (unless tunnel
+      (setq tunnel (start-process "parallel-ssh" nil "ssh"
+                                  "-N" "-R" (format "0:localhost:%s"
+                                                    (process-contact parallel--server :service))
+                                  (format "%s@%s" username hostname)))
+      (process-put tunnel 'username username)
+      (process-put tunnel 'hostname hostname)
+      (set-process-filter tunnel #'parallel--tunnel-filter)
+      (while (null (process-get tunnel 'service))
+        (sleep-for 0.01))
+      (push tunnel parallel--tunnels))
+    tunnel))
+
+(defun parallel-stop-tunnel (tunnel)
+  (setq parallel--tunnels (delq tunnel parallel--tunnels))
+  (delete-process tunnel))
+
+(defun parallel--tunnel-filter (proc output)
+  (if (string-match "\\([0-9]+\\)" output)
+      (process-put proc 'service (match-string 1 output))))
+
 (defun* parallel-start (exec-fun &key post-exec env timeout
                                  emacs-path library-path emacs-args
                                  graphical debug on-event
+                                 username hostname
                                  config)
-  ;; Be sure we have a running `parallel--server'
-  (when (or (null parallel--server)
-            (not (eq (process-status parallel--server)
-                     'listen)))
-    (parallel--init-server))
+  (parallel--init-server)
 
   ;; Initialize parameters
   (setq post-exec (or post-exec (plist-get config :post-exec))
@@ -64,10 +91,20 @@
         emacs-args (or emacs-args (plist-get config :emacs-args))
         graphical (or graphical (plist-get config :graphical))
         debug (or debug (plist-get config :debug))
-        on-event (or on-event (plist-get config :debug)))
-  
+        on-event (or on-event (plist-get config :debug))
+        username (or username (plist-get config :username))
+        hostname (or hostname (plist-get config :hostname)))
+
   (let ((task (parallel--new-task))
-        proc)
+        proc tunnel ssh-args)
+    (setq emacs-args (remq nil
+                           (list* "-Q" "-l" library-path
+                                  (if graphical nil "-batch")
+                                  "--eval" (format "(setq parallel-service '%S)" (process-contact parallel--server :service))
+                                  "--eval" (format "(setq parallel-task-id '%S)" task)
+                                  "--eval" (format "(setq debug-on-error '%S)" debug)
+                                  "-f" "parallel-remote--init"
+                                  emacs-args)))
     (push task parallel--tasks)
     (put task 'initialized nil)
     (put task 'exec-fun exec-fun)
@@ -78,15 +115,22 @@
       (put task 'on-event on-event))
     (put task 'results nil)
     (put task 'status 'run)
-    (setq proc (apply #'start-process "parallel" nil emacs-path
-                      (remq nil
-                            (list* "-Q" "-l" library-path
-                                   (if graphical nil "-batch")
-                                   "--eval" (format "(setq parallel-service '%S)" (process-contact parallel--server :service))
-                                   "--eval" (format "(setq parallel-task-id '%S)" task)
-                                   "--eval" (format "(setq debug-on-error %s)" debug)
-                                   "-f" "parallel-remote--init"
-                                   emacs-args))))
+    (when (and username hostname)
+      (setq tunnel (parallel-make-tunnel username hostname)
+            ssh-args (remq nil
+                           (list
+                            (and graphical "-X")
+                            (format "%s@%s" username hostname)))
+            emacs-args (list (mapconcat (lambda (string)
+                                          (if (find ?' string)
+                                              (prin1-to-string string)
+                                            string))
+                                        emacs-args " "))))
+    (setq proc (apply #'start-process "parallel" nil
+                      `(,@(when tunnel
+                            (list* "ssh" ssh-args))
+                        ,emacs-path
+                        ,@emacs-args)))
     (put task 'proc proc)
     (set-process-sentinel (get task 'proc) #'parallel--sentinel)
     (when timeout
@@ -105,15 +149,18 @@
 
 (defun parallel--init-server ()
   "Initialize `parallel--server'."
-  (setq parallel--server
-        (make-network-process :name "parallel-server"
-                              :buffer nil
-                              :server t
-                              :host "localhost"
-                              :service t
-                              :family 'ipv4
-                              :filter #'parallel--filter
-                              :filter-multibyte t)))
+  (when (or (null parallel--server)
+            (not (eq (process-status parallel--server)
+                     'listen)))
+    (setq parallel--server
+          (make-network-process :name "parallel-server"
+                                :buffer nil
+                                :server t
+                                :host "localhost"
+                                :service t
+                                :family 'ipv4
+                                :filter #'parallel--filter
+                                :filter-multibyte t))))
 
 (defun parallel--get-task-process (proc)
   "Return the task running the given PROC."
