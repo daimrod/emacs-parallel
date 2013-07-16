@@ -80,11 +80,10 @@
   (setq post-exec (or post-exec (plist-get config :post-exec))
         env (or env (plist-get config :env))
         timeout (or timeout (plist-get config :timeout))
-        emacs-path (file-truename
-                    (or emacs-path
-                        (plist-get config :emacs-path)
-                        (expand-file-name invocation-name
-                                          invocation-directory)))
+        emacs-path (or emacs-path
+                       (plist-get config :emacs-path)
+                       (expand-file-name invocation-name
+                                         invocation-directory))
         library-path (or library-path
                          (plist-get config :library-path)
                          (find-library-name "parallel-remote"))
