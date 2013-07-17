@@ -33,6 +33,11 @@
   :type 'number
   :group 'parallel)
 
+(defcustom parallel-config nil
+  "Global config setting to use."
+  :type 'plist
+  :group 'parallel)
+
 (defvar parallel--server nil)
 (defvar parallel--tasks nil)
 (defvar parallel--tunnels nil)
@@ -69,6 +74,16 @@
   (if (string-match "\\([0-9]+\\)" output)
       (process-put proc 'service (match-string 1 output))))
 
+(defmacro parallel--set-option (place config)
+  `(setf ,place (or ,place
+                    (plist-get ,config ,(intern (format ":%s" (symbol-name place))))
+                    (plist-get ,parallel-config ,(intern (format ":%s" (symbol-name place)))))))
+
+(defmacro parallel--set-options (config &rest options)
+  `(progn
+     ,@(loop for option in options
+             collect `(parallel--set-option ,option ,config))))
+
 (defun* parallel-start (exec-fun &key post-exec env timeout
                                  emacs-path library-path emacs-args
                                  graphical debug on-event
@@ -77,23 +92,27 @@
   (parallel--init-server)
 
   ;; Initialize parameters
-  (setq post-exec (or post-exec (plist-get config :post-exec))
-        env (or env (plist-get config :env))
-        timeout (or timeout (plist-get config :timeout))
-        emacs-path (or emacs-path
+  (parallel--set-options config
+                         post-exec
+                         env
+                         timeout
+                         emacs-args
+                         graphical
+                         debug
+                         on-event
+                         username
+                         hostname
+                         hostport)
+  
+  (setq emacs-path (or emacs-path
                        (plist-get config :emacs-path)
+                       (plist-get parallel-config :emacs-path)
                        (expand-file-name invocation-name
                                          invocation-directory))
         library-path (or library-path
                          (plist-get config :library-path)
-                         (find-library-name "parallel-remote"))
-        emacs-args (or emacs-args (plist-get config :emacs-args))
-        graphical (or graphical (plist-get config :graphical))
-        debug (or debug (plist-get config :debug))
-        on-event (or on-event (plist-get config :debug))
-        username (or username (plist-get config :username))
-        hostname (or hostname (plist-get config :hostname))
-        hostport (or hostport (plist-get config :hostport)))
+                         (plist-get parallel-config :library-path)
+                         (find-library-name "parallel-remote")))
 
   (let ((task (parallel--new-task))
         proc tunnel ssh-args)
