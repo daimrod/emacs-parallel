@@ -72,7 +72,7 @@
 (defun* parallel-start (exec-fun &key post-exec env timeout
                                  emacs-path library-path emacs-args
                                  graphical debug on-event
-                                 username hostname
+                                 username hostname hostport
                                  config)
   (parallel--init-server)
 
@@ -92,7 +92,8 @@
         debug (or debug (plist-get config :debug))
         on-event (or on-event (plist-get config :debug))
         username (or username (plist-get config :username))
-        hostname (or hostname (plist-get config :hostname)))
+        hostname (or hostname (plist-get config :hostname))
+        hostport (or hostport (plist-get config :hostport)))
 
   (let ((task (parallel--new-task))
         proc tunnel ssh-args)
@@ -110,17 +111,22 @@
     ;; We need to get the tunnel if it exists so we can send the right
     ;; `service' to the remote.
     (when (and username hostname)
-      (setq tunnel (parallel-make-tunnel username hostname)
-            ssh-args (remq nil
-                           (list
-                            (and graphical "-X")
-                            (format "%s@%s" username hostname)))))
+      (if hostport
+          (setq ssh-args (list "-R" (format "%s:localhost:%s" hostport
+                                            (process-contact parallel--server :service)))
+                tunnel t)
+        (setq tunnel (parallel-make-tunnel username hostname)
+              hostport (process-get tunnel 'service)))
+      (setq ssh-args (append
+                      ssh-args
+                      (if graphical (list "-X"))
+                      (list (format "%s@%s" username hostname)))))
     (setq emacs-args (remq nil
                            (list* "-Q" "-l" library-path
                                   (if graphical nil "-batch")
                                   "--eval" (format "(setq parallel-service '%S)"
                                                    (if tunnel
-                                                       (process-get tunnel 'service)
+                                                       hostport
                                                      (process-contact parallel--server :service)))
                                   "--eval" (format "(setq parallel-task-id '%S)" task)
                                   "--eval" (format "(setq debug-on-error '%S)" debug)
