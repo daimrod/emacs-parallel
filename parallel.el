@@ -96,14 +96,6 @@
 
   (let ((task (parallel--new-task))
         proc tunnel ssh-args)
-    (setq emacs-args (remq nil
-                           (list* "-Q" "-l" library-path
-                                  (if graphical nil "-batch")
-                                  "--eval" (format "(setq parallel-service '%S)" (process-contact parallel--server :service))
-                                  "--eval" (format "(setq parallel-task-id '%S)" task)
-                                  "--eval" (format "(setq debug-on-error '%S)" debug)
-                                  "-f" "parallel-remote--init"
-                                  emacs-args)))
     (push task parallel--tasks)
     (put task 'initialized nil)
     (put task 'exec-fun exec-fun)
@@ -114,13 +106,30 @@
       (put task 'on-event on-event))
     (put task 'results nil)
     (put task 'status 'run)
+
+    ;; We need to get the tunnel if it exists so we can send the right
+    ;; `service' to the remote.
     (when (and username hostname)
       (setq tunnel (parallel-make-tunnel username hostname)
             ssh-args (remq nil
                            (list
                             (and graphical "-X")
-                            (format "%s@%s" username hostname)))
-            emacs-args (list (mapconcat (lambda (string)
+                            (format "%s@%s" username hostname)))))
+    (setq emacs-args (remq nil
+                           (list* "-Q" "-l" library-path
+                                  (if graphical nil "-batch")
+                                  "--eval" (format "(setq parallel-service '%S)"
+                                                   (if tunnel
+                                                       (process-get tunnel 'service)
+                                                     (process-contact parallel--server :service)))
+                                  "--eval" (format "(setq parallel-task-id '%S)" task)
+                                  "--eval" (format "(setq debug-on-error '%S)" debug)
+                                  "-f" "parallel-remote--init"
+                                  emacs-args)))
+
+    ;; Reformat emacs-args if we use a tunnel (escape string)
+    (when tunnel
+      (setq emacs-args (list (mapconcat (lambda (string)
                                           (if (find ?' string)
                                               (prin1-to-string string)
                                             string))
