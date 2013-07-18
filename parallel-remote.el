@@ -47,7 +47,7 @@
     (while (null parallel--executed)
       (sleep-for 10))))                 ; arbitrary chosen
 
-(defun parallel-remote--filter (proc output)
+(defun parallel-remote--filter (_proc output)
   (parallel-send
    (if (or noninteractive
            (not debug-on-error))
