@@ -23,7 +23,7 @@
 ;;; Code:
 
 (defvar parallel-service nil)
-(defvar paralllel-task-id nil)
+(defvar parallel-task-id nil)
 (defvar parallel-client nil)
 (defvar parallel--executed nil)
 
