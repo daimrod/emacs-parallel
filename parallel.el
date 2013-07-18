@@ -23,6 +23,7 @@
 ;;; Code:
 
 (require 'cl)
+(require 'find-func)
 
 (defgroup parallel nil
   "Execute stuff in parallel"
@@ -77,7 +78,7 @@
 (defmacro parallel--set-option (place config)
   `(setf ,place (or ,place
                     (plist-get ,config ,(intern (format ":%s" (symbol-name place))))
-                    (plist-get ,parallel-config ,(intern (format ":%s" (symbol-name place)))))))
+                    (plist-get parallel-config ,(intern (format ":%s" (symbol-name place)))))))
 
 (defmacro parallel--set-options (config &rest options)
   `(progn
