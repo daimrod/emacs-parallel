@@ -26,6 +26,7 @@
 (defvar parallel-task-id nil)
 (defvar parallel-client nil)
 (defvar parallel--executed nil)
+(defvar parallel-continue-when-executed nil)
 
 (defun parallel-send (data)
   (process-send-string parallel-client
@@ -55,8 +56,9 @@
            (eval (read output))
          (error err))
      (eval (read output))))
-  (setq parallel--executed t)
-  (kill-emacs))
+  (unless parallel-continue-when-executed
+    (setq parallel--executed t)
+    (kill-emacs)))
 
 (provide 'parallel-remote)
 

@@ -87,7 +87,7 @@
 
 (defun* parallel-start (exec-fun &key post-exec env timeout
                                  emacs-path library-path emacs-args
-                                 graphical debug on-event
+                                 graphical debug on-event continue-when-executed
                                  username hostname hostport
                                  config)
   (parallel--init-server)
@@ -101,6 +101,7 @@
                          graphical
                          debug
                          on-event
+                         continue-when-executed
                          username
                          hostname
                          hostport)
@@ -150,6 +151,7 @@
                                                      (process-contact parallel--server :service)))
                                   "--eval" (format "(setq parallel-task-id '%S)" task)
                                   "--eval" (format "(setq debug-on-error '%S)" debug)
+                                  "--eval" (format "(setq parallel-continue-when-executed '%S)" continue-when-executed)
                                   "-f" "parallel-remote--init"
                                   emacs-args)))
 
