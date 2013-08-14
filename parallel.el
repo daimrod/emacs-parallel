@@ -23,7 +23,7 @@
 ;;; Code:
 
 (require 'cl)
-(require 'find-func)
+(require 'parallel-remote)
 
 (defgroup parallel nil
   "Execute stuff in parallel"
@@ -114,7 +114,7 @@
         library-path (or library-path
                          (plist-get config :library-path)
                          (plist-get parallel-config :library-path)
-                         (find-library-name "parallel-remote")))
+                         (locate-library "parallel-remote")))
 
   (let ((task (parallel--new-task))
         proc tunnel ssh-args)
@@ -128,6 +128,7 @@
       (put task 'on-event on-event))
     (put task 'results nil)
     (put task 'status 'run)
+    (put task 'queue nil)
 
     ;; We need to get the tunnel if it exists so we can send the right
     ;; `service' to the remote.
@@ -241,23 +242,19 @@ to `funcall' FUN with ENV as arguments."
 (defun parallel--filter (connection output)
   "Server filter used to retrieve the results send by the remote
 process and send the code to be executed by it."
-  (loop with output = (replace-regexp-in-string
-                       "\\`[ \t\n]*" ""
-                       (replace-regexp-in-string "[ \t\n]*\\'" "" output)) ; trim string
-        with start = 0
-        with end = (length output)
-        for ret = (read-from-string output start end)
-        for data = (first ret)
-        do (setq start (rest ret))
-        do (parallel--process-output connection (first data) (rest data))
-        until (= start end)))
+  (dolist (data (parallel--read-output output))
+    (parallel--process-output connection (first data) (rest data))))
 
 (defun parallel--process-output (connection task result)
+  (put task 'connection connection)
   (cond ((and (not (get task 'initialized))
               (eq result 'code))
-         (process-send-string connection
-                              (parallel--call-with-env (get task 'exec-fun)
-                                                       (get task 'env)))
+         (parallel-send task
+                        (get task 'exec-fun)
+                        (get task 'env))
+         (let ((code nil))
+           (while (setq code (pop (get task 'queue)))
+             (parallel-send task (car code) (cdr code))))
          (put task 'initialized t))
         (t
          (push result (get task 'results))
@@ -297,6 +294,15 @@ result returned by exec-fun."
 (defun parallel-stop (task)
   "Stop TASK."
   (delete-process (get task 'proc)))
+
+(defun parallel-send (task fun &optional env)
+  "Send FUN to be evaluated by TASK in ENV."
+  (let ((connection (get task 'connection)))
+    (if connection
+        (process-send-string
+         connection
+         (parallel--call-with-env fun env))
+      (push (cons fun env) (get task 'queue)))))
 
 (provide 'parallel)
 

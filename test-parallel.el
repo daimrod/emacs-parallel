@@ -28,9 +28,9 @@
 (ert-deftest parallel-basic ()
   (should (= 42 (parallel-get-result (parallel-start (lambda () 42))))))
 
-(ert-deftest parallel-send ()
+(ert-deftest parallel-remote-send ()
   (should (equal (parallel-get-results (parallel-start (lambda ()
-                                                         (parallel-send 12)
+                                                         (parallel-remote-send 12)
                                                          42)))
                  (list 42 12))))
 
@@ -61,8 +61,8 @@
              (apply #'+
                     (parallel-get-results
                      (parallel-start (lambda ()
-                                       (parallel-send 12)
-                                       (parallel-send 42)
+                                       (parallel-remote-send 12)
+                                       (parallel-remote-send 42)
                                        0)
                                      :on-event
                                      (lambda (data)
@@ -84,7 +84,7 @@
 (ert-deftest parallel-other-library ()
   (let ((library (make-temp-file "parallel-")))
     (with-temp-file library
-      (insert-file-contents (find-library-name "parallel-remote"))
+      (insert-file-contents (locate-library "parallel-remote"))
       (insert "(defun parallel--test () 42)"))
     (should (equal 42
                    (parallel-get-result
@@ -108,6 +108,12 @@
 (ert-deftest parallel-zlist ()
   ;; HACKY ERT run tests in alphabetical order, hence the name.
   (should (eq nil parallel--tasks)))
+
+(ert-deftest parallel-continue-when-executed ()
+  (let ((task (parallel-start (lambda () 42) :continue-when-executed t :timeout 5)))
+    (parallel-send task (lambda () (setq parallel-continue-when-executed nil)))
+    (should (equal (list nil 42)
+                   (parallel-get-results task)))))
 
 (provide 'test-parallel)
 
