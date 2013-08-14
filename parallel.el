@@ -249,12 +249,13 @@ process and send the code to be executed by it."
   (put task 'connection connection)
   (cond ((and (not (get task 'initialized))
               (eq result 'code))
-         (parallel-send task
-                        (get task 'exec-fun)
-                        (get task 'env))
+         (apply #'parallel-send
+                task
+                (get task 'exec-fun)
+                (get task 'env))
          (let ((code nil))
            (while (setq code (pop (get task 'queue)))
-             (parallel-send task (car code) (cdr code))))
+             (apply #'parallel-send task (car code) (cdr code))))
          (put task 'initialized t))
         (t
          (push result (get task 'results))
@@ -295,7 +296,7 @@ result returned by exec-fun."
   "Stop TASK."
   (delete-process (get task 'proc)))
 
-(defun parallel-send (task fun &optional env)
+(defun parallel-send (task fun &rest env)
   "Send FUN to be evaluated by TASK in ENV."
   (let ((connection (get task 'connection)))
     (if connection
