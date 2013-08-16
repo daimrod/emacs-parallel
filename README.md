@@ -36,10 +36,10 @@ finished:
 
 Here, why `(first results)` and not `result`? Because you can send
 data from the remote instance while it's running with
-`parallel-send`:
+`parallel-remote-send`:
 
     (parallel-start (lambda ()
-                      (parallel-send "Hello")
+                      (parallel-remote-send "Hello")
                       (sleep-for 4.2)
                       "World")
                     :post-exec (lambda (results _status)
@@ -55,12 +55,13 @@ And of course you can execute some code when you receive data from
 the remote instance:
 
     (parallel-start (lambda ()
-                      (parallel-send 42)
+                      (parallel-remote-send 42)
                       (sleep-for 4.2)         ; heavy computation to compute PI
                       pi)
                     :on-event (lambda (data)
                                 (message "Received %S" data)))
     ⊣ Received 42
+    ⊣ Received 3.141592653589793
 
 Because the function is executed in another Emacs instance (in Batch
 Mode by default), the environment isn't the same. However you can
@@ -71,6 +72,21 @@ send some data with the `env` parameter:
       (parallel-get-result (parallel-start (lambda (a b) (+ a b))
                                            :env (list a b))))
     ⇒ 54
+
+By default, the remote Emacs instance is exited when the function is
+executed, but you can keep it running with the
+`:continue-when-executed` option and send new code to be executed
+with `parellel-send`.
+
+    (let ((task (parallel-start (lambda () 42)
+                                :continue-when-executed t)))
+      (sleep-for 4.2)
+      (parallel-send task (lambda () (setq parallel-continue-when-executed nil) 12))
+      (parallel-get-results task))
+    ⇒ (12 42)
+
+As you can see, to stop the remote instance you have to set the
+variable `parallel-continue-when-executed` to nil.
 
 # Tips & Tricks
 
@@ -94,8 +110,9 @@ And this to specify the title of the frame:
 # Known limitations
 
 You can only send data to the remote (with the `env` parameter) or
-from the remote (with `parallel-send`) that have a printed
-representation (see [<elisp#Printed> Representation](elisp#Printed Representation)).
+from the remote (with `parallel-send` and `parallel-remote-send`)
+that have a printed representation (see [<elisp#Printed>
+Representation](elisp#Printed%20Representation)).
 
 So you can pass around numbers, symbols, strings, lists, vectors,
 hash-table but you can't pass buffers, windows, frames&#x2026;
