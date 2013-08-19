@@ -4,9 +4,14 @@
 <ul>
 <li><a href="#sec-1">1. Emacs Parallel</a></li>
 <li><a href="#sec-2">2. HowTo</a></li>
-<li><a href="#sec-3">3. Tips &amp; Tricks</a></li>
-<li><a href="#sec-4">4. How does it work?</a></li>
-<li><a href="#sec-5">5. Known limitations</a></li>
+<li><a href="#sec-3">3. Modules</a>
+<ul>
+<li><a href="#sec-3-1">3.1. Parallel XWidget</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. Tips &amp; Tricks</a></li>
+<li><a href="#sec-5">5. How does it work?</a></li>
+<li><a href="#sec-6">6. Known limitations</a></li>
 </ul>
 </div>
 </div>
@@ -87,6 +92,34 @@ with `parellel-send`.
 
 As you can see, to stop the remote instance you have to set the
 variable `parallel-continue-when-executed` to nil.
+
+# Modules
+
+## Parallel XWidget
+
+[Emacs XWidget](http://www.emacswiki.org/emacs/EmacsXWidgets) is an experimental branch which permits to embed GTK+
+widget inside Emacs buffers. For instance, it is possible to use it
+to render an HTML page using the webkit engine within an Emacs
+buffer.
+
+With this module, you can configure your "main" Emacs to use
+another one to render web pages.
+
+Let's assume that you've cloned [the Emacs XWidget repository](https://github.com/jave/xwidget-emacs) in
+`$HOME/src/emacs-xwidget/`. Once you've compiled it, an Emacs
+executable is available `$HOME/src/emacs-xwidget/src/emacs`.
+
+Configure `parallel-xwidget` to use it:
+
+    (setq parallel-xwidget-config (list :emacs-path
+                                        (concat (getenv "HOME")
+                                                "/src/emacs-xwidget/src/emacs")))
+
+Then configure your current Emacs to use it:
+
+    (setq browse-url-browser-function 'parallel-xwidget-browse-url)
+
+You can check it out with M-x browse-url RET google.com RET.
 
 # Tips & Tricks
 

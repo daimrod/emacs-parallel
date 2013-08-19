@@ -80,7 +80,37 @@
 
   As you can see, to stop the remote instance you have to set the
   variable ~parallel-continue-when-executed~ to nil.
+
+* Modules
   
+** Parallel XWidget
+
+   [[http://www.emacswiki.org/emacs/EmacsXWidgets][Emacs XWidget]] is an experimental branch which permits to embed GTK+
+   widget inside Emacs buffers. For instance, it is possible to use it
+   to render an HTML page using the webkit engine within an Emacs
+   buffer.
+
+   With this module, you can configure your "main" Emacs to use
+   another one to render web pages.
+
+   Let's assume that you've cloned [[https://github.com/jave/xwidget-emacs][the Emacs XWidget repository]] in
+   ~$HOME/src/emacs-xwidget/~. Once you've compiled it, an Emacs
+   executable is available ~$HOME/src/emacs-xwidget/src/emacs~.
+
+   Configure ~parallel-xwidget~ to use it:
+   #+BEGIN_SRC emacs-lisp
+     (setq parallel-xwidget-config (list :emacs-path
+                                         (concat (getenv "HOME")
+                                                 "/src/emacs-xwidget/src/emacs")))
+   #+END_SRC
+
+   Then configure your current Emacs to use it:
+   #+BEGIN_SRC emacs-lisp
+     (setq browse-url-browser-function 'parallel-xwidget-browse-url)
+   #+END_SRC
+
+   You can check it out with M-x browse-url RET google.com RET.
+   
 * Tips & Tricks
 
   If your windows manager is smart enough (like StumpwWM) you can use
