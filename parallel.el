@@ -87,7 +87,7 @@
 
 (defun* parallel-start (exec-fun &key post-exec env timeout
                                  emacs-path library-path emacs-args
-                                 graphical debug on-event continue-when-executed
+                                 no-batch graphical debug on-event continue-when-executed
                                  username hostname hostport
                                  config)
   (parallel--init-server)
@@ -98,6 +98,7 @@
                          env
                          timeout
                          emacs-args
+                         no-batch
                          graphical
                          debug
                          on-event
@@ -145,7 +146,7 @@
                       (list (format "%s@%s" username hostname)))))
     (setq emacs-args (remq nil
                            (list* "-Q" "-l" library-path
-                                  (if graphical nil "-batch")
+                                  (if (or no-batch graphical) nil "-batch")
                                   "--eval" (format "(setq parallel-service '%S)"
                                                    (if tunnel
                                                        hostport

@@ -115,6 +115,12 @@
     (should (equal (list nil 42)
                    (parallel-get-results task)))))
 
+(ert-deftest parallel-no-batch ()
+  (should (equal nil
+                 (parallel-get-result
+                  (parallel-start (lambda () noninteractive)
+                                  :no-batch t)))))
+
 (provide 'test-parallel)
 
 ;;; test-parallel.el ends here
